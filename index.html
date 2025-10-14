@@ -81,25 +81,66 @@
     <p>© 2025 Challenge Hub • Built by Ryan Martin</p>
   </footer>
 
-  <script>
-    // Simple JS to open/close modals dynamically
-    const cards = document.querySelectorAll('.card');
-    const modal = document.getElementById('challengeModal');
-    const title = modal.querySelector('.modal-title');
-    const body = modal.querySelector('.modal-body p');
+<script>
+async function loadChallenges() {
+  const grid = document.getElementById('challengeGrid');
+  const emptyMsg = document.getElementById('noResults');
 
-    cards.forEach(card => {
-      card.addEventListener('click', () => {
-        title.textContent = card.querySelector('h3').textContent;
-        body.textContent = card.querySelector('p').textContent;
-        modal.showModal();
-      });
+  try {
+    const response = await fetch('assets/challenges.json');
+    const challenges = await response.json();
+
+    if (!challenges.length) {
+      emptyMsg.style.display = 'block';
+      return;
+    }
+
+    grid.innerHTML = ''; // Clear existing content
+
+    challenges.forEach(ch => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <h3>${ch.title}</h3>
+        <div class="meta">
+          <span class="badge diff-${ch.difficulty.toLowerCase()}">${ch.difficulty.charAt(0).toUpperCase() + ch.difficulty.slice(1)}</span>
+          <span class="date">${ch.date}</span>
+        </div>
+        <p class="muted">${ch.description}</p>
+      `;
+      grid.appendChild(card);
     });
 
-    function closeModal() {
-      modal.close();
-    }
-  </script>
+    setupModal();
+  } catch (err) {
+    console.error('Error loading challenges:', err);
+    emptyMsg.style.display = 'block';
+    emptyMsg.textContent = 'Failed to load challenges.';
+  }
+}
+
+function setupModal() {
+  const cards = document.querySelectorAll('.card');
+  const modal = document.getElementById('challengeModal');
+  const title = modal.querySelector('.modal-title');
+  const body = modal.querySelector('.modal-body p');
+
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      title.textContent = card.querySelector('h3').textContent;
+      body.textContent = card.querySelector('p').textContent;
+      modal.showModal();
+    });
+  });
+}
+
+function closeModal() {
+  document.getElementById('challengeModal').close();
+}
+
+loadChallenges();
+</script>
+
 
 </body>
 </html>
