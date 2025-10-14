@@ -40,7 +40,7 @@
       box-shadow:var(--shadow);
       display:block;
       object-fit:contain;
-      background: linear-gradient(135deg, var(--accent), var(--ok));
+      background:transparent;
     }
     h1{ margin:0; font-weight:700; letter-spacing:.2px; font-size: clamp(20px, 3vw, 28px) }
     .muted{ color:var(--muted); font-size:.95rem }
@@ -106,7 +106,7 @@
 <body>
   <header>
     <div class="brand">
-      <div class="logo"></div>
+      <img class="logo" src="lbctf_logo.png" alt="LB{CTF} Logo" />
       <div>
         <h1>LB{CTF}</h1>
         <div class="muted">Weekly CTF Challenges for LBCSI</div>
@@ -226,11 +226,16 @@
             <span class="muted">Flag (for hash generation):</span>
             <input id="chalFlag" class="input" placeholder="Leave empty for no flag check" />
           </label>
-          <button id="createChalBtn" class="close btn-primary" type="button">Create Challenge</button>
+          <button id="createChalBtn" class="close btn-primary" type="button">Generate JSON</button>
         </div>
         
-        <h3 style="margin-top:24px">Existing Challenges</h3>
-        <div id="challengeList" class="challenge-list"></div>
+        <div id="jsonOutput" style="display:none; margin-top:20px">
+          <h3>Generated JSON</h3>
+          <p class="muted" style="margin-bottom:8px">Copy this and paste into the challenges array in your HTML:</p>
+          <textarea id="jsonText" class="input" readonly style="min-height:200px; font-family:monospace; font-size:.9rem"></textarea>
+          <button id="copyJson" class="close btn-primary" type="button" style="margin-top:10px">Copy JSON</button>
+          <button id="clearJson" class="close" type="button" style="margin-top:10px">Clear</button>
+        </div>
       </div>
     </div>
   </dialog>
@@ -309,16 +314,6 @@
             points: 150,
             body: "Whats an RSA??? Ciphertext: https://tinyurl.com/bddwwc7",
             hash: "c0a271b3a7f1100ebfeee321350376a8143cf6c5dc3bd073be2aa3e7ed8ecb39"
-          },
-          {
-            id: "test",
-            title:"test",
-            category:"crypto",
-            difficulty: "easy",
-            date: "2025-10-13",
-            points: 50,
-            body: "test",
-            hash: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
           }
         ];
       }
@@ -441,7 +436,6 @@
       if(state.isAdmin){
         login.style.display = 'none';
         panel.style.display = 'block';
-        renderChallengeList();
       } else {
         login.style.display = 'block';
         panel.style.display = 'none';
@@ -459,7 +453,6 @@
         state.isAdmin = true;
         document.getElementById('adminLogin').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
-        renderChallengeList();
       } else {
         msg.textContent = 'Incorrect password';
         msg.style.color = 'var(--hard)';
@@ -482,50 +475,48 @@
       }
 
       const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      const challenge = { id, title, category, difficulty, points, date, body };
+      const challenge = {
+        id: id,
+        title: title,
+        category: category,
+        difficulty: difficulty,
+        points: points
+      };
+      
+      if(date) challenge.date = date;
+      challenge.body = body;
       if(link) challenge.link = link;
       if(flag) challenge.hash = await sha256(flag);
 
-      state.challenges.push(challenge);
-      saveState();
-      render();
-      renderChallengeList();
+      // Format as pretty JSON
+      const json = JSON.stringify(challenge, null, 2);
       
+      // Show output
+      document.getElementById('jsonOutput').style.display = 'block';
+      document.getElementById('jsonText').value = json;
+      
+      // Scroll to output
+      document.getElementById('jsonOutput').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    document.getElementById('copyJson').onclick = () => {
+      const txt = document.getElementById('jsonText').value;
+      navigator.clipboard.writeText(txt);
+      alert('JSON copied to clipboard!');
+    };
+
+    document.getElementById('clearJson').onclick = () => {
       // Clear form
       document.getElementById('chalTitle').value = '';
       document.getElementById('chalBody').value = '';
       document.getElementById('chalLink').value = '';
       document.getElementById('chalFlag').value = '';
       document.getElementById('chalDate').value = '';
+      document.getElementById('chalPoints').value = '100';
       
-      alert('Challenge created!');
-    };
-
-    function renderChallengeList(){
-      const list = document.getElementById('challengeList');
-      list.innerHTML = '';
-      
-      state.challenges.forEach((c, i) => {
-        const item = document.createElement('div');
-        item.className = 'challenge-item';
-        item.innerHTML = `
-          <div>
-            <strong>${escapeHTML(c.title)}</strong>
-            <span class="muted"> - ${c.category}, ${c.difficulty}, ${c.points}pts</span>
-          </div>
-          <button class="btn-delete" onclick="deleteChallenge(${i})">Delete</button>
-        `;
-        list.appendChild(item);
-      });
-    }
-
-    window.deleteChallenge = (i) => {
-      if(confirm('Delete this challenge?')){
-        state.challenges.splice(i, 1);
-        saveState();
-        render();
-        renderChallengeList();
-      }
+      // Hide output
+      document.getElementById('jsonOutput').style.display = 'none';
+      document.getElementById('jsonText').value = '';
     };
 
     // Hasher
