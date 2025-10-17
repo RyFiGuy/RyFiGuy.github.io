@@ -101,6 +101,13 @@
     .challenge-item{ padding:10px; background:rgba(255,255,255,.03); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center }
     .btn-delete{ background:var(--hard); color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:.85rem }
     .btn-delete:hover{ opacity:0.9 }
+    .admin-form{ display:flex; flex-direction:column; gap:12px }
+    .admin-form label{ display:flex; flex-direction:column; gap:4px; font-size:.9rem }
+    .admin-form textarea{ min-height:80px; resize:vertical; font-family:inherit }
+    .challenge-list{ max-height:300px; overflow-y:auto; margin-top:12px }
+    .challenge-item{ padding:10px; background:rgba(255,255,255,.03); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center }
+    .btn-delete{ background:var(--hard); color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:.85rem }
+    .btn-delete:hover{ opacity:0.9 }
   </style>
 </head>
 <body>
@@ -164,172 +171,78 @@
     </div>
   </dialog>
 
-  <dialog id="adminModal">
-    <div class="modal-head">
-      <h2 class="modal-title">Admin Panel</h2>
-      <button class="close" type="button" onclick="document.getElementById('adminModal').close()">Close</button>
-    </div>
-    <div class="modal-body">
-      <div id="adminLogin">
-        <div class="admin-form">
-          <label>
-            <span class="muted">Password:</span>
-            <input id="adminPass" class="input" type="password" placeholder="Enter admin password" />
-          </label>
-          <button id="loginBtn" class="close btn-primary" type="button">Login</button>
-          <span id="loginMsg" class="muted"></span>
-        </div>
-      </div>
-      <div id="adminPanel" style="display:none">
-        <h3>Create Challenge</h3>
-        <div class="admin-form">
-          <label>
-            <span class="muted">Title:</span>
-            <input id="chalTitle" class="input" />
-          </label>
-          <label>
-            <span class="muted">Category:</span>
-            <select id="chalCategory" class="select">
-              <option>crypto</option>
-              <option>forensics</option>
-              <option>web</option>
-              <option>pwn</option>
-              <option>rev</option>
-              <option>misc</option>
-            </select>
-          </label>
-          <label>
-            <span class="muted">Difficulty:</span>
-            <select id="chalDifficulty" class="select">
-              <option>easy</option>
-              <option>medium</option>
-              <option>hard</option>
-            </select>
-          </label>
-          <label>
-            <span class="muted">Points:</span>
-            <input id="chalPoints" class="input" type="number" min="1" value="100" />
-          </label>
-          <label>
-            <span class="muted">Date (YYYY-MM-DD):</span>
-            <input id="chalDate" class="input" placeholder="2025-10-13" />
-          </label>
-          <label>
-            <span class="muted">Description:</span>
-            <textarea id="chalBody" class="input"></textarea>
-          </label>
-          <label>
-            <span class="muted">Link (optional):</span>
-            <input id="chalLink" class="input" placeholder="https://..." />
-          </label>
-          <label>
-            <span class="muted">Flag (for hash generation):</span>
-            <input id="chalFlag" class="input" placeholder="Leave empty for no flag check" />
-          </label>
-          <button id="createChalBtn" class="close btn-primary" type="button">Generate JSON</button>
-        </div>
-        
-        <div id="jsonOutput" style="display:none; margin-top:20px">
-          <h3>Generated JSON</h3>
-          <p class="muted" style="margin-bottom:8px">Copy this and paste into the challenges array in your HTML:</p>
-          <textarea id="jsonText" class="input" readonly style="min-height:200px; font-family:monospace; font-size:.9rem"></textarea>
-          <button id="copyJson" class="close btn-primary" type="button" style="margin-top:10px">Copy JSON</button>
-          <button id="clearJson" class="close" type="button" style="margin-top:10px">Clear</button>
-        </div>
-      </div>
-    </div>
-  </dialog>
-
-  <dialog id="hashModal">
-    <div class="modal-head">
-      <h2 class="modal-title">Flag Hasher</h2>
-      <button class="close" type="button" onclick="document.getElementById('hashModal').close()">Close</button>
-    </div>
-    <div class="modal-body">
-      <label for="hashInput" class="muted">Enter exact flag text to hash:</label>
-      <input id="hashInput" class="input" placeholder="CTF{your-flag-here}" style="width:100%; margin-top:8px" />
-      <div id="hashOut" style="margin-top:12px; word-break:break-all"></div>
-      <button id="copyHash" class="close" type="button" style="margin-top:10px">Copy hash</button>
-    </div>
-  </dialog>
-
   <footer>
-    <button id="openAdmin" class="close" type="button">Admin Panel</button>
-    <button id="openHasher" class="close" type="button">Flag Hasher</button>
     <button id="resetScore" class="close" type="button" style="background:var(--hard); color:#fff">Reset Score</button>
   </footer>
 
   <script>
-    const ADMIN_PASSWORD = "lbcsi123";
-    
-    // State
+    // State - store only solved challenges, recalculate score from source
     const state = {
-      challenges: [],
-      solved: {},
-      score: 0,
-      isAdmin: false
+      solved: {}
     };
 
-    // Load/Save
+    // Challenge definitions (hardcoded to prevent tampering)
+    const CHALLENGES = [
+      {
+        id: "sanity-check",
+        title: "Sanity Check",
+        category: "misc",
+        difficulty: "easy",
+        date: "2025-10-09",
+        points: 50,
+        body: "Warmup: decode this base64 string and follow the usual flag format. Base64: bGJjdGZ7Y2hlY2t5b3VyYnJhaW59",
+        hash: "019175aae9a148e2caba4329ec19318b3c49dae8b6b68436f291ccf6d9c04366"
+      },
+      {
+        id: "wall-e",
+        title:"wall-e",
+        category: "web",
+        difficulty: "easy",
+        date: "2025-10-09",
+        points: 100,
+        body: "I hid a flag somewhere on this site where the web crawlers will NEVER find it... can you find it?",
+        hash: "ce28a0fce260874f93caadd33ce3d9f7d1f75836cb8823e3f851014ea6d3354f"
+      },
+      {
+        id: "rsa-1",
+        title:"Really super awesome encryption",
+        category:"crypto",
+        difficulty: "easy",
+        date: "2025-10-13",
+        points: 150,
+        body: "Whats an RSA??? Ciphertext: https://tinyurl.com/bddwwc7",
+        hash: "c0a271b3a7f1100ebfeee321350376a8143cf6c5dc3bd073be2aa3e7ed8ecb39"
+      }
+    ];
+
+    // Load/Save - only save which challenges are solved
     function loadState(){
-      const saved = localStorage.getItem('lbctf');
+      const saved = localStorage.getItem('lbctf_solved');
       if(saved){
         try{
-          const data = JSON.parse(saved);
-          state.challenges = data.challenges || [];
-          state.solved = data.solved || {};
-          state.score = data.score || 0;
+          state.solved = JSON.parse(saved);
         }catch(e){}
-      }
-      
-      // Default challenges if empty
-      if(state.challenges.length === 0){
-        state.challenges = [
-          {
-            id: "sanity-check",
-            title: "Sanity Check",
-            category: "misc",
-            difficulty: "easy",
-            date: "2025-10-09",
-            points: 50,
-            body: "Warmup: decode this base64 string and follow the usual flag format. Base64: bGJjdGZ7Y2hlY2t5b3VyYnJhaW59",
-            hash: "019175aae9a148e2caba4329ec19318b3c49dae8b6b68436f291ccf6d9c04366"
-          },
-          {
-            id: "wall-e",
-            title:"wall-e",
-            category: "web",
-            difficulty: "easy",
-            date: "2025-10-09",
-            points: 100,
-            body: "I hid a flag somewhere on this site where the web crawlers will NEVER find it... can you find it?",
-            hash: "ce28a0fce260874f93caadd33ce3d9f7d1f75836cb8823e3f851014ea6d3354f"
-          },
-          {
-            id: "rsa-1",
-            title:"Really super awesome encryption",
-            category:"crypto",
-            difficulty: "easy",
-            date: "2025-10-13",
-            points: 150,
-            body: "Whats an RSA??? Ciphertext: https://tinyurl.com/bddwwc7",
-            hash: "c0a271b3a7f1100ebfeee321350376a8143cf6c5dc3bd073be2aa3e7ed8ecb39"
-          }
-        ];
       }
       updateScore();
     }
 
     function saveState(){
-      localStorage.setItem('lbctf', JSON.stringify({
-        challenges: state.challenges,
-        solved: state.solved,
-        score: state.score
-      }));
+      localStorage.setItem('lbctf_solved', JSON.stringify(state.solved));
+    }
+
+    function calculateScore(){
+      let total = 0;
+      for(const id in state.solved){
+        if(state.solved[id]){
+          const challenge = CHALLENGES.find(c => c.id === id);
+          if(challenge) total += challenge.points;
+        }
+      }
+      return total;
     }
 
     function updateScore(){
-      document.getElementById('totalScore').textContent = state.score;
+      document.getElementById('totalScore').textContent = calculateScore();
     }
 
     // Render
@@ -348,7 +261,7 @@
       const cat = document.getElementById('category').value.toLowerCase();
       const diff = document.getElementById('difficulty').value.toLowerCase();
 
-      const filtered = state.challenges.filter(c => {
+      const filtered = CHALLENGES.filter(c => {
         const text = (c.title + ' ' + c.body + ' ' + c.category + ' ' + c.difficulty).toLowerCase();
         return (!q || text.includes(q)) && (!cat || c.category.toLowerCase() === cat) && (!diff || c.difficulty.toLowerCase() === diff);
       });
@@ -375,7 +288,7 @@
           <div class="meta">
             <span class="badge">${escapeHTML(c.category)}</span>
             <span class="${diffClass(c.difficulty)}">${escapeHTML(c.difficulty)}</span>
-            <span class="badge points-badge">${c.points || 100} pts</span>
+            <span class="badge points-badge">${c.points} pts</span>
             ${solved ? '<span class="badge solved-badge">✓ Solved</span>' : ''}
           </div>
         `;
@@ -391,7 +304,7 @@
       document.getElementById('modalCat').className = 'badge';
       document.getElementById('modalDiff').textContent = c.difficulty;
       document.getElementById('modalDiff').className = diffClass(c.difficulty);
-      document.getElementById('modalPoints').textContent = `${c.points || 100} pts`;
+      document.getElementById('modalPoints').textContent = `${c.points} pts`;
       document.getElementById('modalDate').textContent = c.date || '';
       document.getElementById('modalBody').textContent = c.body + (c.link ? `\n\nAttachment: ${c.link}` : '');
 
@@ -408,10 +321,9 @@
         btn.onclick = async () => {
           const hash = await sha256(input.value.trim());
           if(hash === c.hash){
-            msg.textContent = `Correct! +${c.points || 100} points`;
+            msg.textContent = `Correct! +${c.points} points`;
             msg.style.color = 'var(--ok)';
             state.solved[c.id] = true;
-            state.score += (c.points || 100);
             updateScore();
             saveState();
             setTimeout(() => { modal.close(); render(); }, 1500);
@@ -428,124 +340,10 @@
     }
 
     // Admin Panel
-    document.getElementById('openAdmin').onclick = () => {
-      const modal = document.getElementById('adminModal');
-      const login = document.getElementById('adminLogin');
-      const panel = document.getElementById('adminPanel');
-      
-      if(state.isAdmin){
-        login.style.display = 'none';
-        panel.style.display = 'block';
-      } else {
-        login.style.display = 'block';
-        panel.style.display = 'none';
-        document.getElementById('adminPass').value = '';
-        document.getElementById('loginMsg').textContent = '';
-      }
-      modal.showModal();
-    };
-
-    document.getElementById('loginBtn').onclick = () => {
-      const pass = document.getElementById('adminPass').value;
-      const msg = document.getElementById('loginMsg');
-      
-      if(pass === ADMIN_PASSWORD){
-        state.isAdmin = true;
-        document.getElementById('adminLogin').style.display = 'none';
-        document.getElementById('adminPanel').style.display = 'block';
-      } else {
-        msg.textContent = 'Incorrect password';
-        msg.style.color = 'var(--hard)';
-      }
-    };
-
-    document.getElementById('createChalBtn').onclick = async () => {
-      const title = document.getElementById('chalTitle').value.trim();
-      const category = document.getElementById('chalCategory').value;
-      const difficulty = document.getElementById('chalDifficulty').value;
-      const points = parseInt(document.getElementById('chalPoints').value) || 100;
-      const date = document.getElementById('chalDate').value.trim();
-      const body = document.getElementById('chalBody').value.trim();
-      const link = document.getElementById('chalLink').value.trim();
-      const flag = document.getElementById('chalFlag').value.trim();
-
-      if(!title || !body){
-        alert('Title and description are required');
-        return;
-      }
-
-      const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      const challenge = {
-        id: id,
-        title: title,
-        category: category,
-        difficulty: difficulty,
-        points: points
-      };
-      
-      if(date) challenge.date = date;
-      challenge.body = body;
-      if(link) challenge.link = link;
-      if(flag) challenge.hash = await sha256(flag);
-
-      // Format as pretty JSON
-      const json = JSON.stringify(challenge, null, 2);
-      
-      // Show output
-      document.getElementById('jsonOutput').style.display = 'block';
-      document.getElementById('jsonText').value = json;
-      
-      // Scroll to output
-      document.getElementById('jsonOutput').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    };
-
-    document.getElementById('copyJson').onclick = () => {
-      const txt = document.getElementById('jsonText').value;
-      navigator.clipboard.writeText(txt);
-      alert('JSON copied to clipboard!');
-    };
-
-    document.getElementById('clearJson').onclick = () => {
-      // Clear form
-      document.getElementById('chalTitle').value = '';
-      document.getElementById('chalBody').value = '';
-      document.getElementById('chalLink').value = '';
-      document.getElementById('chalFlag').value = '';
-      document.getElementById('chalDate').value = '';
-      document.getElementById('chalPoints').value = '100';
-      
-      // Hide output
-      document.getElementById('jsonOutput').style.display = 'none';
-      document.getElementById('jsonText').value = '';
-    };
-
-    // Hasher
-    document.getElementById('openHasher').onclick = () => {
-      document.getElementById('hashInput').value = '';
-      document.getElementById('hashOut').textContent = '';
-      document.getElementById('hashModal').showModal();
-    };
-
-    document.getElementById('hashInput').oninput = async (e) => {
-      const val = e.target.value;
-      if(!val){
-        document.getElementById('hashOut').textContent = '';
-        return;
-      }
-      const hash = await sha256(val);
-      document.getElementById('hashOut').textContent = `sha256: ${hash}`;
-    };
-
-    document.getElementById('copyHash').onclick = () => {
-      const txt = document.getElementById('hashOut').textContent.replace('sha256: ', '');
-      if(txt) navigator.clipboard.writeText(txt);
-    };
-
     // Reset
     document.getElementById('resetScore').onclick = () => {
       if(confirm('Reset your score and solved challenges?')){
         state.solved = {};
-        state.score = 0;
         updateScore();
         saveState();
         render();
