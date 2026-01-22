@@ -1,369 +1,254 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LB{CTF}</title>
-  <style>
-    :root{
-      --bg: #0b0d10;
-      --card: #11151b;
-      --muted: #9aa4b2;
-      --text: #e6edf3;
-      --accent: #6ea8fe;
-      --ring: rgba(110,168,254,.35);
-      --ok: #36d399;
-      --warn: #fbbf24;
-      --hard: #ef4444;
-      --shadow: 0 8px 30px rgba(0,0,0,.35);
-      --radius: 18px;
-    }
-    @media (prefers-color-scheme: light){
-      :root{ --bg:#f6f7fb; --card:#ffffff; --text:#0f172a; --muted:#5b6472; --accent:#3b82f6; --ring:rgba(59,130,246,.25); --shadow: 0 8px 30px rgba(0,0,0,.08); }
-    }
-    *{ box-sizing:border-box }
-    html,body{ height:100% }
-    body{
-      margin:0; font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
-      background: radial-gradient(1200px 600px at 80% -10%, rgba(110,168,254,.10), transparent),
-                  radial-gradient(1000px 500px at -10% 0%, rgba(54,211,153,.08), transparent), var(--bg);
-      color:var(--text);
-    }
-    header{
-      max-width:1100px; margin:32px auto 16px; padding:0 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
-    }
-    .brand{ display:flex; align-items:center; gap:12px; flex:1 1 auto }
-    .logo{
-      width:40px;
-      height:40px;
-      border-radius:10px;
-      box-shadow:var(--shadow);
-      display:block;
-      object-fit:contain;
-      background:transparent;
-    }
-    h1{ margin:0; font-weight:700; letter-spacing:.2px; font-size: clamp(20px, 3vw, 28px) }
-    .muted{ color:var(--muted); font-size:.95rem }
-    .controls{ display:flex; gap:10px; flex-wrap:wrap }
-    .input, .select{
-      appearance:none; border:1px solid transparent; background:var(--card); color:var(--text);
-      padding:10px 12px; border-radius:12px; box-shadow:var(--shadow);
-      outline:none; min-width: 180px;
-    }
-    .input:focus, .select:focus{ border-color: var(--accent); box-shadow: 0 0 0 6px var(--ring), var(--shadow) }
-    .select{ min-width: 140px }
-    .score-display{
-      background: var(--card); padding:10px 16px; border-radius:12px; box-shadow:var(--shadow);
-      display:flex; align-items:center; gap:8px; font-weight:600;
-    }
-    .score-num{ color: var(--ok); font-size:1.1rem }
+<meta charset="UTF-8">
+<title>Ubiquiti Network Designer</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  display: flex;
+  height: 100vh;
+}
 
-    main{ max-width:1100px; margin:10px auto 60px; padding:0 20px }
-    .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:16px }
+#sidebar {
+  width: 260px;
+  background: #111;
+  color: #fff;
+  padding: 10px;
+  overflow-y: auto;
+}
 
-    .card{
-      background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius);
-      padding:16px; box-shadow: var(--shadow); position:relative; overflow:hidden; cursor:pointer; transition: transform .12s ease, border-color .12s ease;
-    }
-    .card:hover{ transform: translateY(-2px); border-color: var(--accent) }
-    .card.solved{ border-color: var(--ok); opacity:0.7 }
-    .card h3{ margin:4px 0 6px; font-size:1.05rem }
-    .card .meta{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 2px }
-    .badge{ display:inline-flex; align-items:center; gap:6px; padding:5px 8px; border-radius:10px; font-size:.78rem; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06) }
-    .diff-easy{ color:var(--ok) }
-    .diff-med{ color:var(--warn) }
-    .diff-hard{ color:var(--hard) }
-    .date{ font-size:.78rem; color:var(--muted) }
-    .points-badge{ background: var(--ok); color: #000; font-weight:600; border:none }
-    .solved-badge{ background: var(--ok); color: #000; border:none }
+.device-template {
+  background: #222;
+  padding: 10px;
+  margin-bottom: 8px;
+  cursor: grab;
+  border: 1px solid #444;
+}
 
-    .empty{ text-align:center; padding:40px 12px; color:var(--muted) }
+#workspace {
+  flex: 1;
+  position: relative;
+  background: #f0f2f5;
+}
 
-    dialog{ width:min(720px, 92vw); border:none; padding:0; border-radius: 20px; overflow:hidden; box-shadow: 0 20px 70px rgba(0,0,0,.45); background: var(--card); color:var(--text) }
-    dialog::backdrop{ backdrop-filter: blur(6px) brightness(.7) }
-    .modal-head{ padding:18px 20px; border-bottom:1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; gap:12px }
-    .modal-title{ margin:0; font-size:1.15rem }
-    .modal-body{ padding:18px 20px; white-space:pre-wrap; word-wrap:break-word }
-    .modal-meta{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 0 }
-    .close{ border:1px solid rgba(255,255,255,.1); background:transparent; color:var(--text); padding:8px 12px; border-radius:10px; cursor:pointer }
-    .close:hover{ border-color: var(--accent) }
-    .btn-primary{ background: var(--accent); color:#fff; border:none; font-weight:600 }
-    .btn-primary:hover{ opacity:0.9 }
+.device {
+  position: absolute;
+  background: #fff;
+  border: 2px solid #0078d4;
+  padding: 8px;
+  cursor: move;
+  user-select: none;
+}
 
-    footer{ max-width:1100px; margin:28px auto 60px; padding:0 20px; color:var(--muted); font-size:.9rem; display:flex; gap:10px; flex-wrap:wrap }
-    a{ color: var(--accent); text-decoration: none }
-    a:hover{ text-decoration: underline }
+.tooltip {
+  position: absolute;
+  background: #000;
+  color: #fff;
+  padding: 6px;
+  font-size: 12px;
+  display: none;
+  z-index: 10;
+}
 
-    .admin-form{ display:flex; flex-direction:column; gap:12px }
-    .admin-form label{ display:flex; flex-direction:column; gap:4px; font-size:.9rem }
-    .admin-form textarea{ min-height:80px; resize:vertical; font-family:inherit }
-    .challenge-list{ max-height:300px; overflow-y:auto; margin-top:12px }
-    .challenge-item{ padding:10px; background:rgba(255,255,255,.03); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center }
-    .btn-delete{ background:var(--hard); color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:.85rem }
-    .btn-delete:hover{ opacity:0.9 }
-    .admin-form{ display:flex; flex-direction:column; gap:12px }
-    .admin-form label{ display:flex; flex-direction:column; gap:4px; font-size:.9rem }
-    .admin-form textarea{ min-height:80px; resize:vertical; font-family:inherit }
-    .challenge-list{ max-height:300px; overflow-y:auto; margin-top:12px }
-    .challenge-item{ padding:10px; background:rgba(255,255,255,.03); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center }
-    .btn-delete{ background:var(--hard); color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:.85rem }
-    .btn-delete:hover{ opacity:0.9 }
-  </style>
+#line-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#footer {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #fff;
+  padding: 10px;
+  border-top-left-radius: 8px;
+  box-shadow: 0 0 5px rgba(0,0,0,.3);
+}
+</style>
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <img class="logo" src="lbctf_logo.png" alt="LB{CTF} Logo" />
-      <div>
-        <h1>LB{CTF}</h1>
-        <div class="muted">Weekly CTF Challenges for LBCSI</div>
-      </div>
-    </div>
-    <div class="controls">
-      <div class="score-display">
-        <span class="muted">Score:</span>
-        <span class="score-num" id="totalScore">0</span>
-      </div>
-      <input id="search" class="input" placeholder="Search title or text…" />
-      <select id="category" class="select">
-        <option value="">All categories</option>
-        <option>crypto</option>
-        <option>forensics</option>
-        <option>web</option>
-        <option>pwn</option>
-        <option>rev</option>
-        <option>misc</option>
-      </select>
-      <select id="difficulty" class="select">
-        <option value="">Any difficulty</option>
-        <option value="easy">easy</option>
-        <option value="medium">medium</option>
-        <option value="hard">hard</option>
-      </select>
-    </div>
-  </header>
 
-  <main>
-    <section id="grid" class="grid" aria-live="polite"></section>
-    <div id="empty" class="empty" hidden>No challenges match your filters.</div>
-  </main>
+<div id="sidebar">
+  <h3>Ubiquiti Devices</h3>
+</div>
 
-  <dialog id="modal">
-    <div class="modal-head">
-      <div>
-        <h2 id="modalTitle" class="modal-title"></h2>
-        <div class="modal-meta">
-          <span id="modalCat" class="badge"></span>
-          <span id="modalDiff" class="badge"></span>
-          <span id="modalPoints" class="badge points-badge"></span>
-          <span id="modalDate" class="badge date"></span>
-        </div>
-      </div>
-      <button class="close" onclick="document.getElementById('modal').close()">Close</button>
-    </div>
-    <div id="modalBody" class="modal-body"></div>
-    <div id="verifyWrap" class="modal-body" style="border-top:1px solid rgba(255,255,255,.06); display:none">
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
-        <input id="flagInput" class="input" placeholder="Enter flag" style="flex:1 1 240px" autocomplete="off" />
-        <button id="checkBtn" class="close btn-primary" type="button">Check flag</button>
-        <span id="verifyMsg" class="muted"></span>
-      </div>
-    </div>
-  </dialog>
+<div id="workspace">
+  <svg id="line-layer"></svg>
+  <div id="footer">
+    <strong>Total Price:</strong> $<span id="total">0</span>
+  </div>
+</div>
 
-  <footer>
-    <button id="resetScore" class="close" type="button" style="background:var(--hard); color:#fff">Reset Score</button>
-  </footer>
+<script>
+const devices = [
+  {
+    name: "UniFi Switch 24 PoE",
+    ports: 24,
+    poePorts: 24,
+    price: 379,
+    providesPoe: true
+  },
+  {
+    name: "UniFi Switch Lite 8 PoE",
+    ports: 8,
+    poePorts: 4,
+    price: 109,
+    providesPoe: true
+  },
+  {
+    name: "UniFi U6 Lite AP",
+    ports: 1,
+    poeRequired: true,
+    price: 99
+  },
+  {
+    name: "UniFi G4 Bullet Camera",
+    ports: 1,
+    poeRequired: true,
+    price: 199
+  }
+];
 
-  <script>
-    // State - store only solved challenges, recalculate score from source
-    const state = {
-      solved: {}
-    };
+const sidebar = document.getElementById("sidebar");
+const workspace = document.getElementById("workspace");
+const totalEl = document.getElementById("total");
+const svg = document.getElementById("line-layer");
 
-    // Challenge definitions (hardcoded to prevent tampering)
-    const CHALLENGES = [
-      {
-        id: "sanity-check",
-        title: "Sanity Check",
-        category: "misc",
-        difficulty: "easy",
-        date: "2025-10-09",
-        points: 50,
-        body: "Warmup: decode this base64 string and follow the usual flag format. Base64: bGJjdGZ7Y2hlY2t5b3VyYnJhaW59",
-        hash: "019175aae9a148e2caba4329ec19318b3c49dae8b6b68436f291ccf6d9c04366"
-      },
-      {
-        id: "wall-e",
-        title:"wall-e",
-        category: "web",
-        difficulty: "easy",
-        date: "2025-10-09",
-        points: 100,
-        body: "I hid a flag somewhere on this site where the web crawlers will NEVER find it... can you find it?",
-        hash: "ce28a0fce260874f93caadd33ce3d9f7d1f75836cb8823e3f851014ea6d3354f"
-      },
-      {
-        id: "rsa-1",
-        title:"Really super awesome encryption",
-        category:"crypto",
-        difficulty: "easy",
-        date: "2025-10-13",
-        points: 150,
-        body: "Whats an RSA??? Ciphertext: https://tinyurl.com/bddwwc7",
-        hash: "c0a271b3a7f1100ebfeee321350376a8143cf6c5dc3bd073be2aa3e7ed8ecb39"
-      }
-    ];
+let placedDevices = [];
+let connections = [];
+let selectedDevice = null;
+let total = 0;
 
-    // Load/Save - only save which challenges are solved
-    function loadState(){
-      const saved = localStorage.getItem('lbctf_solved');
-      if(saved){
-        try{
-          state.solved = JSON.parse(saved);
-        }catch(e){}
-      }
-      updateScore();
+/* Populate sidebar */
+devices.forEach(d => {
+  const div = document.createElement("div");
+  div.className = "device-template";
+  div.innerText = `${d.name} ($${d.price})`;
+  div.draggable = true;
+  div.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("device", JSON.stringify(d));
+  });
+  sidebar.appendChild(div);
+});
+
+workspace.addEventListener("dragover", e => e.preventDefault());
+
+workspace.addEventListener("drop", e => {
+  const data = JSON.parse(e.dataTransfer.getData("device"));
+  createDevice(data, e.offsetX, e.offsetY);
+});
+
+function createDevice(data, x, y) {
+  const div = document.createElement("div");
+  div.className = "device";
+  div.style.left = x + "px";
+  div.style.top = y + "px";
+  div.innerText = data.name;
+
+  const tooltip = document.createElement("div");
+  tooltip.className = "tooltip";
+  tooltip.innerHTML = `
+    <strong>${data.name}</strong><br>
+    Ports: ${data.ports || 1}<br>
+    PoE Ports: ${data.poePorts || 0}<br>
+    Price: $${data.price}
+  `;
+  div.appendChild(tooltip);
+
+  div.addEventListener("mouseenter", () => tooltip.style.display = "block");
+  div.addEventListener("mouseleave", () => tooltip.style.display = "none");
+
+  div.addEventListener("click", () => handleConnection(div));
+
+  makeDraggable(div);
+
+  workspace.appendChild(div);
+
+  placedDevices.push({
+    el: div,
+    data,
+    usedPorts: 0,
+    usedPoe: 0
+  });
+
+  total += data.price;
+  totalEl.innerText = total;
+}
+
+function handleConnection(target) {
+  if (!selectedDevice) {
+    selectedDevice = target;
+    target.style.borderColor = "red";
+  } else {
+    if (selectedDevice !== target) {
+      attemptConnection(selectedDevice, target);
     }
+    selectedDevice.style.borderColor = "#0078d4";
+    selectedDevice = null;
+  }
+}
 
-    function saveState(){
-      localStorage.setItem('lbctf_solved', JSON.stringify(state.solved));
-    }
+function attemptConnection(a, b) {
+  const devA = placedDevices.find(d => d.el === a);
+  const devB = placedDevices.find(d => d.el === b);
 
-    function calculateScore(){
-      let total = 0;
-      for(const id in state.solved){
-        if(state.solved[id]){
-          const challenge = CHALLENGES.find(c => c.id === id);
-          if(challenge) total += challenge.points;
-        }
-      }
-      return total;
-    }
+  // Port check
+  if (devA.usedPorts >= (devA.data.ports || 1) ||
+      devB.usedPorts >= (devB.data.ports || 1)) {
+    alert("No available ports");
+    return;
+  }
 
-    function updateScore(){
-      document.getElementById('totalScore').textContent = calculateScore();
-    }
+  // PoE enforcement
+  if (devB.data.poeRequired && !devA.data.providesPoe) {
+    alert("Target device requires PoE");
+    return;
+  }
 
-    // Render
-    function escapeHTML(s){
-      return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m]));
-    }
+  devA.usedPorts++;
+  devB.usedPorts++;
 
-    function diffClass(d){
-      if(d === 'easy') return 'badge diff-easy';
-      if(d === 'medium') return 'badge diff-med';
-      return 'badge diff-hard';
-    }
+  drawLine(a, b);
+}
 
-    function render(){
-      const q = document.getElementById('search').value.toLowerCase();
-      const cat = document.getElementById('category').value.toLowerCase();
-      const diff = document.getElementById('difficulty').value.toLowerCase();
+function drawLine(a, b) {
+  const r1 = a.getBoundingClientRect();
+  const r2 = b.getBoundingClientRect();
 
-      const filtered = CHALLENGES.filter(c => {
-        const text = (c.title + ' ' + c.body + ' ' + c.category + ' ' + c.difficulty).toLowerCase();
-        return (!q || text.includes(q)) && (!cat || c.category.toLowerCase() === cat) && (!diff || c.difficulty.toLowerCase() === diff);
-      });
+  const x1 = r1.left + r1.width / 2;
+  const y1 = r1.top + r1.height / 2;
+  const x2 = r2.left + r2.width / 2;
+  const y2 = r2.top + r2.height / 2;
 
-      const grid = document.getElementById('grid');
-      const empty = document.getElementById('empty');
-      
-      if(filtered.length === 0){
-        empty.hidden = false;
-        grid.innerHTML = '';
-        return;
-      }
-      
-      empty.hidden = true;
-      grid.innerHTML = '';
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", x1);
+  line.setAttribute("y1", y1);
+  line.setAttribute("x2", x2);
+  line.setAttribute("y2", y2);
+  line.setAttribute("stroke", "black");
+  line.setAttribute("stroke-width", "2");
 
-      filtered.forEach(c => {
-        const solved = state.solved[c.id];
-        const card = document.createElement('article');
-        card.className = 'card' + (solved ? ' solved' : '');
-        card.innerHTML = `
-          <span class="date">${c.date || ''}</span>
-          <h3>${escapeHTML(c.title)}</h3>
-          <div class="meta">
-            <span class="badge">${escapeHTML(c.category)}</span>
-            <span class="${diffClass(c.difficulty)}">${escapeHTML(c.difficulty)}</span>
-            <span class="badge points-badge">${c.points} pts</span>
-            ${solved ? '<span class="badge solved-badge">✓ Solved</span>' : ''}
-          </div>
-        `;
-        card.onclick = () => openChallenge(c);
-        grid.appendChild(card);
-      });
-    }
+  svg.appendChild(line);
+}
 
-    function openChallenge(c){
-      const modal = document.getElementById('modal');
-      document.getElementById('modalTitle').textContent = c.title;
-      document.getElementById('modalCat').textContent = c.category;
-      document.getElementById('modalCat').className = 'badge';
-      document.getElementById('modalDiff').textContent = c.difficulty;
-      document.getElementById('modalDiff').className = diffClass(c.difficulty);
-      document.getElementById('modalPoints').textContent = `${c.points} pts`;
-      document.getElementById('modalDate').textContent = c.date || '';
-      document.getElementById('modalBody').textContent = c.body + (c.link ? `\n\nAttachment: ${c.link}` : '');
+function makeDraggable(el) {
+  let offsetX, offsetY;
+  el.addEventListener("mousedown", e => {
+    offsetX = e.offsetX;
+    offsetY = e.offsetY;
+    document.onmousemove = move;
+    document.onmouseup = () => document.onmousemove = null;
+  });
 
-      const wrap = document.getElementById('verifyWrap');
-      const input = document.getElementById('flagInput');
-      const btn = document.getElementById('checkBtn');
-      const msg = document.getElementById('verifyMsg');
-      
-      if(c.hash && !state.solved[c.id]){
-        wrap.style.display = 'block';
-        input.value = '';
-        msg.textContent = '';
-        
-        btn.onclick = async () => {
-          const hash = await sha256(input.value.trim());
-          if(hash === c.hash){
-            msg.textContent = `Correct! +${c.points} points`;
-            msg.style.color = 'var(--ok)';
-            state.solved[c.id] = true;
-            updateScore();
-            saveState();
-            setTimeout(() => { modal.close(); render(); }, 1500);
-          } else {
-            msg.textContent = 'Incorrect';
-            msg.style.color = 'var(--hard)';
-          }
-        };
-      } else {
-        wrap.style.display = 'none';
-      }
-
-      modal.showModal();
-    }
-
-    // Admin Panel
-    // Reset
-    document.getElementById('resetScore').onclick = () => {
-      if(confirm('Reset your score and solved challenges?')){
-        state.solved = {};
-        updateScore();
-        saveState();
-        render();
-      }
-    };
-
-    // Crypto
-    async function sha256(msg){
-      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
-      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-    }
-
-    // Filter events
-    document.getElementById('search').oninput = render;
-    document.getElementById('category').onchange = render;
-    document.getElementById('difficulty').onchange = render;
-
-    // Init
-    loadState();
-    render();
-  </script>
+  function move(e) {
+    el.style.left = (e.pageX - offsetX) + "px";
+    el.style.top = (e.pageY - offsetY) + "px";
+  }
+}
+</script>
 </body>
 </html>
